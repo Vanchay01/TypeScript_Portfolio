@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { skillSchema } from "../schema/skillSchema";
 import { skillService } from "../service/skillService";
 
+
+// add skill ----------------------------------------------------------------
 export const addSkill = async (req: Request, res: Response) => {
   const reqSkill = skillSchema.safeParse(req.body);
   if (!reqSkill.success) {
@@ -26,6 +28,8 @@ export const addSkill = async (req: Request, res: Response) => {
     });
   }
 };
+
+// get skill ----------------------------------------------------------------
 export const getSkill = async (req: Request, res: Response) => {
   try {
     const skill = await skillService.find();
@@ -42,6 +46,8 @@ export const getSkill = async (req: Request, res: Response) => {
     });
   }
 };
+
+// get one skill ----------------------------------------------------------------
 export const getOneSkill = async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   try{
@@ -59,6 +65,8 @@ export const getOneSkill = async (req: Request, res: Response) => {
     })
   }
 }
+
+// update skill ----------------------------------------------------------------
 export const updateSkill = async (req: Request, res: Response) => {
   console.log("Controller updateSkill is OK1")
   const id = Number(req.params.id);
@@ -87,6 +95,8 @@ export const updateSkill = async (req: Request, res: Response) => {
     });
   }
 };
+
+// delete one skill ----------------------------------------------------------------
 export const deleteSkill = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   try {
