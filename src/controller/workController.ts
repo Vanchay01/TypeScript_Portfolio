@@ -30,8 +30,9 @@ export const addWork = async (req: Request, res: Response) => {
 export const getAllWork = async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 100;
+    const search = String(req.query.search || "").trim()
     try {
-      const result = await workService.find(page, limit);
+      const result = await workService.find(page, limit, search);
       return res.json({
         message: "Find all work successfully.",
         status: true,

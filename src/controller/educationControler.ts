@@ -60,7 +60,7 @@ export const getEducationById = async (req: Request, res: Response) => {
   }catch (err: any){
     console.error(err.message)
     return res.status(500).json({
-      messgae: "Internal server error",
+      message: "Internal server error",
       error: err.message,
     })
   }

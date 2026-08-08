@@ -4,6 +4,7 @@ import { Work } from "../entities/Work";
 import { WorkImage } from "../entities/WorkImage";
 import { uploadWorkPicDTO, workDTO } from "../schema/workSchema";
 import { dot } from "node:test/reporters";
+import {ILike} from "typeorm";
 
 const repo = AppDataSource.getRepository(Work);
 const workPicRepo = AppDataSource.getRepository(WorkImage);
@@ -21,8 +22,13 @@ export const workService = {
     return await repo.save(work);
   },
   // get work
-  async find(page: number, limit: number) {
+  async find(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
+    const where = search ? [
+      {name: ILike(`%${search}%`)},
+      {position: ILike(`%${search}%`)},
+      {framework: ILike(`%${search}%`)},
+    ] : undefined;
     const [work, total] = await repo.findAndCount({
       select: {
         id: true,
@@ -41,6 +47,7 @@ export const workService = {
           tool: true,
         },
       },
+      where,
       take: limit,
       skip: skip,
       order: { created_at: "DESC" },
