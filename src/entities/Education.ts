@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { EducationDegres } from "./EducationDegres";
+import { EducationDegree } from "./EducationDegree";
 
 @Entity("education")
 export class Education {
@@ -19,10 +19,10 @@ export class Education {
     logo: string | null
 
     @OneToMany(
-        () => EducationDegres, 
-        (degres) => degres.by_education
+        () => EducationDegree,
+        (degree) => degree.by_education
     )
-    degres: EducationDegres[]
+    degree: EducationDegree[]
 
     @CreateDateColumn()
     created_at: Date

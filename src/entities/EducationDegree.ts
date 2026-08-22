@@ -2,8 +2,8 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { Education } from "./Education";
 
 
-@Entity("education_degres")
-export class EducationDegres {
+@Entity("education_degree")
+export class EducationDegree {
     @PrimaryGeneratedColumn()
     id: number
     @Column()
@@ -19,7 +19,7 @@ export class EducationDegres {
 
     @ManyToOne(
         () => Education,
-        (education) => education.degres,
+        (education) => education.degree,
         {onDelete: "CASCADE"}
     )
     @JoinColumn({name: "by_education"})

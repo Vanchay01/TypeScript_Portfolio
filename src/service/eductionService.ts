@@ -1,11 +1,11 @@
 import { AppDataSource } from "../config/data-source";
 import { educationDTO, uploadDegresDTO } from "../schema/educationSchema";
 import { Education } from "../entities/Education";
-import { EducationDegres } from "../entities/EducationDegres";
+import { EducationDegree } from "../entities/EducationDegree";
 import { id } from "zod/locales";
 
 const repo = AppDataSource.getRepository(Education);
-const degreesRepo = AppDataSource.getRepository(EducationDegres);
+const degreesRepo = AppDataSource.getRepository(EducationDegree);
 export const educationService = {
 
   // create -------------------------------------------------------
@@ -34,7 +34,7 @@ export const educationService = {
         logo: true,
         created_at: true,
       },
-      relations: { degres: true },
+      relations: { degree: true },
       order: { created_at: "DESC" },
     });
     if (!education) {
@@ -56,6 +56,7 @@ export const educationService = {
         logo: true,
         created_at: true,
       },
+      relations: { degree: true },
       where: { id: id },
     });
     if (!education) {
