@@ -15,3 +15,28 @@ export const uploadWorkPicSchema = z.object({
   by_work: z.coerce.number(),
 });
 export type uploadWorkPicDTO = z.infer<typeof uploadWorkPicSchema>;
+
+
+
+
+// create work with relational
+export const createToolSchema = z.object({
+  name: z.string().min(1, "Tool name is required"),
+});
+export const createTechnologySchema = z.object({
+  name: z.string().min(1, "Technology name is required"),
+  tools: z.array(createToolSchema).default([]),
+});
+export const createFeatureSchema = z.object({
+  name: z.string().min(1, "Feature name is required"),
+  description: z.string().min(1, "Feature description is required"),
+});
+export const createWorkSchema = workSchema.extend({
+  technologies: z.array(createTechnologySchema).default([]),
+  features: z.array(createFeatureSchema).default([]),
+});
+
+export type createToolDTO = z.infer<typeof createToolSchema>;
+export type createTechnologyDTO = z.infer<typeof createTechnologySchema>;
+export type createFeatureDTO = z.infer<typeof createFeatureSchema>;
+export type createWorkDTO = z.infer<typeof createWorkSchema>;

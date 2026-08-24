@@ -1,8 +1,34 @@
 import { Request, Response } from "express";
 import { workService } from "../service/workService";
-import { uploadWorkPicSchema, workSchema } from "../schema/workSchema";
+import { createWorkSchema, uploadWorkPicSchema, workSchema } from "../schema/workSchema";
 
-// add 
+
+// add with relationalship ------------------------------------------------------------
+export const addRelationalWork = async (req: Request, res: Response) => {
+  const reqWork = createWorkSchema.safeParse(req.body)
+  if(!reqWork.success){
+    return res.json({
+      message: reqWork.error.issues,
+      status: false
+    })
+  }
+  try {
+    const result = await workService.createWorkRelational(reqWork.data);
+    return res.json({
+      message: "Find all work successfully.",
+      status: true,
+      data: result,
+    });
+  } catch (err: any) {
+    console.error(err.message);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+}
+
+// add ------------------------------------------------------------
 export const addWork = async (req: Request, res: Response) => {
     const reqWork = workSchema.safeParse(req.body)
     if(!reqWork.success){
@@ -26,7 +52,8 @@ export const addWork = async (req: Request, res: Response) => {
       });
     }
 };
-// get all
+
+// get all ------------------------------------------------------------
 export const getAllWork = async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 100;
@@ -46,7 +73,8 @@ export const getAllWork = async (req: Request, res: Response) => {
       });
     }
 };
-// getAllById
+
+// getAllById ------------------------------------------------------------
 export const getWorkById = async (req: Request, res: Response) => {
   console.log('asdasd - workController.ts:50')
   const id = Number(req.params.id);
@@ -65,7 +93,8 @@ export const getWorkById = async (req: Request, res: Response) => {
     });
   }
 };
-// deleteUser
+
+// deleteUser ------------------------------------------------------------
 export const deleteWork = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   try {
@@ -89,7 +118,8 @@ export const deleteWork = async (req: Request, res: Response) => {
     });
   }
 };
-// updateWork
+
+// updateWork ------------------------------------------------------------
 export const updateWork = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const work = workSchema.safeParse(req.body);
@@ -114,7 +144,8 @@ export const updateWork = async (req: Request, res: Response) => {
     });
   }
 };
-// workUpload
+
+// workUpload ------------------------------------------------------------
 export const workUpload = async (req: Request, res: Response) => {
   console.log("asdasd  educationControler.ts:88 - workController.ts:118")
   const reqUploads = uploadWorkPicSchema.safeParse({...req.body, images: req.files})
@@ -140,6 +171,8 @@ export const workUpload = async (req: Request, res: Response) => {
     })
   }
 } 
+
+// workDeletePic ------------------------------------------------------------
 export const workDeletePic = async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   try {

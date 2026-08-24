@@ -2,14 +2,78 @@ import { features } from "node:process";
 import { AppDataSource } from "../config/data-source";
 import { Work } from "../entities/Work";
 import { WorkImage } from "../entities/WorkImage";
-import { uploadWorkPicDTO, workDTO } from "../schema/workSchema";
+import { createWorkDTO, uploadWorkPicDTO, workDTO } from "../schema/workSchema";
 import { dot } from "node:test/reporters";
 import {ILike} from "typeorm";
+import { KeyFeature } from "../entities/KeyFeature";
+import { Technology } from "../entities/Technology";
+import { TechnologyTool } from "../entities/TechnologyTool";
 
 const repo = AppDataSource.getRepository(Work);
 const workPicRepo = AppDataSource.getRepository(WorkImage);
 export const workService = {
-  //  Creatr work
+  // create work with Relationship ------------------------------------------------------------
+  async createWorkRelational(dto: createWorkDTO) {
+    const queryRunner = AppDataSource.createQueryRunner()
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+    // 1. create Work
+    const work = queryRunner.manager.create(Work, {
+      name: dto.name,
+      position: dto.position,
+      github: dto.github,
+      demo: dto.demo,
+      framework: dto.framework,
+      description: dto.description,
+    });
+    const savedWork = await queryRunner.manager.save(Work, work);
+
+    // 2. create feature
+    if(dto.features && dto.features.length > 0){ 
+      const features = dto.features.map((feature) => {
+        return queryRunner.manager.create(KeyFeature, {
+          name: feature.name,
+          description: feature.description,
+          by_work: { id: savedWork.id },
+        })
+      })
+      await queryRunner.manager.save(KeyFeature, features);
+    }
+
+    // 3. create technology
+    if (dto.technologies && dto.technologies.length > 0) {
+        for (const technologyDTO of dto.technologies) {
+          const technology = queryRunner.manager.create(Technology,
+            {
+              name: technologyDTO.name,
+              by_work: {id: savedWork.id},
+            }
+          );
+          const savedTechnology = await queryRunner.manager.save(Technology, technology);
+
+          if (technologyDTO.tools &&technologyDTO.tools.length > 0) {
+            const tools = technologyDTO.tools.map((tool) => {
+              return queryRunner.manager.create(TechnologyTool, {
+                name: tool.name,
+                by_technology: {id: savedTechnology.id}
+              });
+            });
+            await queryRunner.manager.save(TechnologyTool, tools);
+          }
+        }
+      }
+      await queryRunner.commitTransaction();
+      return savedWork
+    } catch (err: any) {
+      await queryRunner.rollbackTransaction();
+      console.error("createWorkRelational error:", err);
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  },
+  //  Creatr work ------------------------------------------------------------
   async creat(dto: workDTO) {
     const work = repo.create({
       name: dto.name,
@@ -21,7 +85,7 @@ export const workService = {
     });
     return await repo.save(work);
   },
-  // get work
+  // get work ------------------------------------------------------------
   async find(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
     const where = search ? [
@@ -65,7 +129,7 @@ export const workService = {
       data: work,
     };
   },
-  // get user id -------------------
+  // get user id ------------------------------------------------------------
   async findOne(id: number) {
     console.log("aa - workService.ts:63")
     const work = await repo.findOne({
@@ -94,7 +158,7 @@ export const workService = {
     }
     return work;
   },
-  // delete work
+  // delete work ------------------------------------------------------------
   async deleteOne(id: number) {
     const work = await repo.findOne({
       select: {
