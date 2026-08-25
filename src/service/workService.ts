@@ -2,7 +2,7 @@ import { features } from "node:process";
 import { AppDataSource } from "../config/data-source";
 import { Work } from "../entities/Work";
 import { WorkImage } from "../entities/WorkImage";
-import { createImageDTO, createWorkDTO, uploadWorkPicDTO, workDTO } from "../schema/workSchema";
+import { createImageDTO, createWorkDTO, updateWorkDTO, UpdateWorkFiles, uploadWorkPicDTO, workDTO } from "../schema/workSchema";
 import { dot } from "node:test/reporters";
 import {ILike} from "typeorm";
 import { KeyFeature } from "../entities/KeyFeature";
@@ -90,7 +90,194 @@ export const workService = {
       await queryRunner.release();
     }
   },
-  //  Creatr work ------------------------------------------------------------
+
+  // edit relational work -----------------------------------------------
+  async updateWorkRelational(id: number, dto: updateWorkDTO, files: UpdateWorkFiles) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const work = await queryRunner.manager.findOne(Work, {
+        where: {id: id}
+      })
+      if (!work) {
+        throw new Error("WORK_NOT_FOUND");
+      }
+      const {technologies, features, ...workData} = dto;
+
+      queryRunner.manager.merge(
+        Work,
+        work,
+        workData
+      );
+
+      const savedWork = await queryRunner.manager.save(
+        Work,
+        work
+      );
+      if (features !== undefined) {
+        await queryRunner.manager.delete(
+          KeyFeature,
+          {
+            by_work: {
+              id: workId,
+            },
+          }
+        );
+
+        if (features.length > 0) {
+          const featureEntities = features.map((feature) =>
+            queryRunner.manager.create(KeyFeature, {
+              name: feature.name,
+              description: feature.description,
+              by_work: {
+                id: workId,
+              },
+            })
+          );
+
+          await queryRunner.manager.save(
+            KeyFeature,
+            featureEntities
+          );
+        }
+      }
+      if (technologies !== undefined) {
+        const existingTechnologies =
+          await queryRunner.manager.find(Technology, {
+            where: {
+              by_work: {
+                id: workId,
+              },
+            },
+          });
+
+        const technologyIds =
+          existingTechnologies.map(
+            (technology) => technology.id
+          );
+
+        if (technologyIds.length > 0) {
+          await queryRunner.manager
+            .createQueryBuilder()
+            .delete()
+            .from(TechnologyTool)
+            .where(
+              "by_technology IN (:...ids)",
+              {
+                ids: technologyIds,
+              }
+            )
+            .execute();
+        }
+
+        await queryRunner.manager.delete(
+          Technology,
+          {
+            by_work: {
+              id: workId,
+            },
+          }
+        );
+
+        for (const technologyDTO of technologies) {
+          const technology =
+            queryRunner.manager.create(Technology, {
+              name: technologyDTO.name,
+              by_work: {
+                id: workId,
+              },
+            });
+
+          const savedTechnology =
+            await queryRunner.manager.save(
+              Technology,
+              technology
+            );
+
+          if (
+            technologyDTO.tools &&
+            technologyDTO.tools.length > 0
+          ) {
+            const tools =
+              technologyDTO.tools.map((tool) =>
+                queryRunner.manager.create(
+                  TechnologyTool,
+                  {
+                    name: tool.name,
+                    by_technology: {
+                      id: savedTechnology.id,
+                    },
+                  }
+                )
+              );
+
+            await queryRunner.manager.save(
+              TechnologyTool,
+              tools
+            );
+          }
+        }
+      }
+
+      // =========================================================
+      // 5. Add New Images
+      // =========================================================
+      //
+      // Existing images are kept.
+      // New uploaded images are added.
+      //
+      // If you want "replace all images", change this section
+      // to delete existing images first.
+      //
+      // =========================================================
+
+      if (files.images && files.images.length > 0) {
+        const imageEntities =
+          files.images.map((file) =>
+            queryRunner.manager.create(
+              WorkImage,
+              {
+                originalname: file.originalname,
+                filename: file.filename,
+                path: file.path,
+                size: file.size,
+                encoding: file.encoding,
+                by_work: {
+                  id: savedWork.id,
+                },
+              }
+            )
+          );
+
+        await queryRunner.manager.save(
+          WorkImage,
+          imageEntities
+        );
+      }
+
+      // =========================================================
+      // 6. Commit
+      // =========================================================
+
+      await queryRunner.commitTransaction();
+
+      return savedWork;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+
+      console.error(
+        "updateWorkRelational error:",
+        err
+      );
+
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  },
+
+  //  Create ------------------------------------------------------------
   async creat(dto: workDTO) {
     const work = repo.create({
       name: dto.name,

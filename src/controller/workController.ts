@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { workService } from "../service/workService";
-import { createWorkSchema, uploadWorkPicSchema, workSchema } from "../schema/workSchema";
+import { createWorkSchema, updateWorkSchema, uploadWorkPicSchema, workSchema } from "../schema/workSchema";
 import { file } from "zod";
+import { ServerResponse } from "node:http";
 
 
 // add with relationalship ------------------------------------------------------------
@@ -35,6 +36,52 @@ export const addRelationalWork = async (req: Request, res: Response) => {
     });
   }
 }
+export const updateRelationalWork = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const images = (req.files as Express.Multer.File[]) || [];
+    if (typeof req.body.technologies === "string") {
+    req.body.technologies = JSON.parse(req.body.technologies);
+    }
+    if (typeof req.body.features === "string") {
+      req.body.features = JSON.parse(req.body.features);
+    }
+    const reqWork = updateWorkSchema.safeParse(req.body);
+    if(!reqWork.success){
+      return res.json({
+        message: reqWork.error.issues,
+        status: false
+      })
+    }
+    const result = await workService.updateWorkRelational(
+      workId,
+      reqWork.data,
+      {
+        images,
+      }
+    );
+    return res.json({
+      status: true,
+      message: "Work updated successfully.",
+      data: result,
+    });
+  } catch (err: any) {
+    console.error("updateRelationalWork error:", err);
+
+    if (err.message === "WORK_NOT_FOUND") {
+      return res.status(404).json({
+        status: false,
+        message: "Work not found",
+      });
+    }
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
 
 // add ------------------------------------------------------------
 export const addWork = async (req: Request, res: Response) => {
