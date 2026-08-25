@@ -6,7 +6,7 @@ export const workRouter = Router();
 
 workRouter.post("/uploads", upload.array('images', 4), workUpload);
 workRouter.delete("/remove_upload/:id", workDeletePic);
-workRouter.post("/add_all", addRelationalWork)
+workRouter.post("/add_all", upload.array('images', 4), addRelationalWork)
 workRouter.post("/", addWork)
 workRouter.get("/", getAllWork)
 workRouter.get("/:id", getWorkById);

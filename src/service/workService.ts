@@ -2,47 +2,48 @@ import { features } from "node:process";
 import { AppDataSource } from "../config/data-source";
 import { Work } from "../entities/Work";
 import { WorkImage } from "../entities/WorkImage";
-import { createWorkDTO, uploadWorkPicDTO, workDTO } from "../schema/workSchema";
+import { createImageDTO, createWorkDTO, uploadWorkPicDTO, workDTO } from "../schema/workSchema";
 import { dot } from "node:test/reporters";
 import {ILike} from "typeorm";
 import { KeyFeature } from "../entities/KeyFeature";
 import { Technology } from "../entities/Technology";
 import { TechnologyTool } from "../entities/TechnologyTool";
+import { file } from "zod";
 
 const repo = AppDataSource.getRepository(Work);
 const workPicRepo = AppDataSource.getRepository(WorkImage);
 export const workService = {
   // create work with Relationship ------------------------------------------------------------
-  async createWorkRelational(dto: createWorkDTO) {
+  async createWorkRelational(dto: createWorkDTO, files: createImageDTO) {
     const queryRunner = AppDataSource.createQueryRunner()
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-    // 1. create Work
-    const work = queryRunner.manager.create(Work, {
-      name: dto.name,
-      position: dto.position,
-      github: dto.github,
-      demo: dto.demo,
-      framework: dto.framework,
-      description: dto.description,
-    });
-    const savedWork = await queryRunner.manager.save(Work, work);
+      // 1. create Work
+      const work = queryRunner.manager.create(Work, {
+        name: dto.name,
+        position: dto.position,
+        github: dto.github,
+        demo: dto.demo,
+        framework: dto.framework,
+        description: dto.description,
+      });
+      const savedWork = await queryRunner.manager.save(Work, work);
 
-    // 2. create feature
-    if(dto.features && dto.features.length > 0){ 
-      const features = dto.features.map((feature) => {
-        return queryRunner.manager.create(KeyFeature, {
-          name: feature.name,
-          description: feature.description,
-          by_work: { id: savedWork.id },
+      // 2. create feature
+      if(dto.features && dto.features.length > 0){ 
+        const features = dto.features.map((feature) => {
+          return queryRunner.manager.create(KeyFeature, {
+            name: feature.name,
+            description: feature.description,
+            by_work: { id: savedWork.id },
+          })
         })
-      })
-      await queryRunner.manager.save(KeyFeature, features);
-    }
+        await queryRunner.manager.save(KeyFeature, features);
+      }
 
-    // 3. create technology
-    if (dto.technologies && dto.technologies.length > 0) {
+      // 3. create technology
+      if (dto.technologies && dto.technologies.length > 0) {
         for (const technologyDTO of dto.technologies) {
           const technology = queryRunner.manager.create(Technology,
             {
@@ -62,6 +63,22 @@ export const workService = {
             await queryRunner.manager.save(TechnologyTool, tools);
           }
         }
+      }
+      // 3. create iamge
+      if(files.images.length > 0){
+        const iamges = files.images.map((file) => {
+          return queryRunner.manager.create(WorkImage, {
+            originalname: file.originalname,
+            filename: file.filename,
+            path: file.path,
+            size: file.size,
+            encoding: file.encoding,
+            by_work: {
+              id: savedWork.id,
+            },
+          })
+        })
+        await queryRunner.manager.save(WorkImage, iamges);
       }
       await queryRunner.commitTransaction();
       return savedWork

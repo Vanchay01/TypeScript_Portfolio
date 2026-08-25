@@ -8,12 +8,11 @@ export const workSchema = z.object({
   framework: z.string(),
   description: z.string(),
 });
-export type workDTO = z.infer<typeof workSchema>;
-
 export const uploadWorkPicSchema = z.object({
   images: z.custom<Express.Multer.File[]>(),
   by_work: z.coerce.number(),
 });
+export type workDTO = z.infer<typeof workSchema>;
 export type uploadWorkPicDTO = z.infer<typeof uploadWorkPicSchema>;
 
 
@@ -31,12 +30,19 @@ export const createFeatureSchema = z.object({
   name: z.string().min(1, "Feature name is required"),
   description: z.string().min(1, "Feature description is required"),
 });
+export const createImageSchema = z.object({
+  images: z.custom<Express.Multer.File[]>(),
+  by_work: z.coerce.number(),
+});
 export const createWorkSchema = workSchema.extend({
   technologies: z.array(createTechnologySchema).default([]),
   features: z.array(createFeatureSchema).default([]),
+  image: z.array(createImageSchema).default([])
 });
+
 
 export type createToolDTO = z.infer<typeof createToolSchema>;
 export type createTechnologyDTO = z.infer<typeof createTechnologySchema>;
 export type createFeatureDTO = z.infer<typeof createFeatureSchema>;
 export type createWorkDTO = z.infer<typeof createWorkSchema>;
+export type createImageDTO = z.infer<typeof createImageSchema>; 

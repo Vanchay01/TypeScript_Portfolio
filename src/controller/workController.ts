@@ -1,10 +1,18 @@
 import { Request, Response } from "express";
 import { workService } from "../service/workService";
 import { createWorkSchema, uploadWorkPicSchema, workSchema } from "../schema/workSchema";
+import { file } from "zod";
 
 
 // add with relationalship ------------------------------------------------------------
 export const addRelationalWork = async (req: Request, res: Response) => {
+  const files = req.files as Express.Multer.File[];
+  if (typeof req.body.technologies === "string") {
+    req.body.technologies = JSON.parse(req.body.technologies);
+  }
+  if (typeof req.body.features === "string") {
+    req.body.features = JSON.parse(req.body.features);
+  }
   const reqWork = createWorkSchema.safeParse(req.body)
   if(!reqWork.success){
     return res.json({
@@ -13,7 +21,7 @@ export const addRelationalWork = async (req: Request, res: Response) => {
     })
   }
   try {
-    const result = await workService.createWorkRelational(reqWork.data);
+    const result = await workService.createWorkRelational(reqWork.data, {images: files, by_work: 0});
     return res.json({
       message: "Find all work successfully.",
       status: true,
@@ -147,9 +155,7 @@ export const updateWork = async (req: Request, res: Response) => {
 
 // workUpload ------------------------------------------------------------
 export const workUpload = async (req: Request, res: Response) => {
-  console.log("asdasd  educationControler.ts:88 - workController.ts:118")
   const reqUploads = uploadWorkPicSchema.safeParse({...req.body, images: req.files})
-  
   if (!reqUploads.success) {
     return res.json({
       message: reqUploads.error.issues,
