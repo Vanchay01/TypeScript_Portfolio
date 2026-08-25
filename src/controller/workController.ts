@@ -53,28 +53,19 @@ export const updateRelationalWork = async (req: Request, res: Response) => {
         status: false
       })
     }
-    const result = await workService.updateWorkRelational(
-      workId,
-      reqWork.data,
-      {
-        images,
-      }
-    );
+    const result = await workService.updateWorkRelational(id, reqWork.data,{images,});
     return res.json({
       status: true,
       message: "Work updated successfully.",
       data: result,
     });
   } catch (err: any) {
-    console.error("updateRelationalWork error:", err);
-
     if (err.message === "WORK_NOT_FOUND") {
       return res.status(404).json({
         status: false,
         message: "Work not found",
       });
     }
-
     return res.status(500).json({
       status: false,
       message: "Internal Server Error",

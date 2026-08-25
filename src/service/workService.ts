@@ -105,113 +105,56 @@ export const workService = {
       }
       const {technologies, features, ...workData} = dto;
 
-      queryRunner.manager.merge(
-        Work,
-        work,
-        workData
-      );
-
-      const savedWork = await queryRunner.manager.save(
-        Work,
-        work
-      );
+      queryRunner.manager.merge(Work, work, workData);
+      const savedWork = await queryRunner.manager.save(Work,work);
       if (features !== undefined) {
-        await queryRunner.manager.delete(
-          KeyFeature,
-          {
-            by_work: {
-              id: workId,
-            },
-          }
-        );
-
+        await queryRunner.manager.delete(KeyFeature, {
+          by_work: {id: id}
+        });
         if (features.length > 0) {
           const featureEntities = features.map((feature) =>
             queryRunner.manager.create(KeyFeature, {
               name: feature.name,
               description: feature.description,
               by_work: {
-                id: workId,
+                id: id,
               },
             })
           );
-
-          await queryRunner.manager.save(
-            KeyFeature,
-            featureEntities
-          );
+          await queryRunner.manager.save(KeyFeature, featureEntities);
         }
       }
       if (technologies !== undefined) {
-        const existingTechnologies =
-          await queryRunner.manager.find(Technology, {
-            where: {
-              by_work: {
-                id: workId,
-              },
-            },
+        const existingTechnologies = await queryRunner.manager.find(Technology, {
+            where: {by_work: {id: id},},
           });
-
-        const technologyIds =
-          existingTechnologies.map(
-            (technology) => technology.id
-          );
-
-        if (technologyIds.length > 0) {
+        const technology_id = existingTechnologies.map((technology) => technology.id);
+        console.log(technology_id, ":id")
+        if (technology_id.length > 0) {
           await queryRunner.manager
             .createQueryBuilder()
-            .delete()
+            .delete() 
             .from(TechnologyTool)
-            .where(
-              "by_technology IN (:...ids)",
-              {
-                ids: technologyIds,
-              }
-            )
-            .execute();
+            .where("by_technology IN (:...ids)", {
+              ids: technology_id,
+            }).execute();
         }
-
-        await queryRunner.manager.delete(
-          Technology,
-          {
-            by_work: {
-              id: workId,
-            },
-          }
-        );
-
+        console.log("next.")
+        await queryRunner.manager.delete(Technology, {
+          by_work: {id: id}
+        });
         for (const technologyDTO of technologies) {
-          const technology =
-            queryRunner.manager.create(Technology, {
-              name: technologyDTO.name,
-              by_work: {
-                id: workId,
-              },
-            });
-
-          const savedTechnology =
-            await queryRunner.manager.save(
-              Technology,
-              technology
+          const technology = queryRunner.manager.create(Technology, {
+            name: technologyDTO.name,
+            by_work: {id: id}
+          });
+          const savedTechnology = await queryRunner.manager.save(Technology,technology);
+          if(technologyDTO.tools &&technologyDTO.tools.length > 0){
+            const tools = technologyDTO.tools.map((tool) => queryRunner.manager.create(TechnologyTool,{
+                name: tool.name,
+                by_technology: {id: savedTechnology.id,}
+              })
             );
-
-          if (
-            technologyDTO.tools &&
-            technologyDTO.tools.length > 0
-          ) {
-            const tools =
-              technologyDTO.tools.map((tool) =>
-                queryRunner.manager.create(
-                  TechnologyTool,
-                  {
-                    name: tool.name,
-                    by_technology: {
-                      id: savedTechnology.id,
-                    },
-                  }
-                )
-              );
-
             await queryRunner.manager.save(
               TechnologyTool,
               tools
@@ -219,19 +162,6 @@ export const workService = {
           }
         }
       }
-
-      // =========================================================
-      // 5. Add New Images
-      // =========================================================
-      //
-      // Existing images are kept.
-      // New uploaded images are added.
-      //
-      // If you want "replace all images", change this section
-      // to delete existing images first.
-      //
-      // =========================================================
-
       if (files.images && files.images.length > 0) {
         const imageEntities =
           files.images.map((file) =>
@@ -250,27 +180,13 @@ export const workService = {
             )
           );
 
-        await queryRunner.manager.save(
-          WorkImage,
-          imageEntities
-        );
+        await queryRunner.manager.save(WorkImage, imageEntities);
       }
-
-      // =========================================================
-      // 6. Commit
-      // =========================================================
-
       await queryRunner.commitTransaction();
-
       return savedWork;
     } catch (err) {
       await queryRunner.rollbackTransaction();
-
-      console.error(
-        "updateWorkRelational error:",
-        err
-      );
-
+      console.error("updateWorkRelational error:", err);
       throw err;
     } finally {
       await queryRunner.release();
